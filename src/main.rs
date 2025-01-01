@@ -81,6 +81,7 @@ use {
         TokenUrl,
     },
     password_hash::PasswordHash,
+    path_absolutize::Absolutize,
     platform_info::{
         PlatformInfoAPI,
         UNameAPI,
@@ -346,16 +347,19 @@ async fn main1() -> Result<(), loga::Error> {
                                         break;
                                     },
                                 };
-                                let password = match state.fdap.user_get::<&str, _>(&resp.user, [], 10000).await {
-                                    Ok(Some(p)) => p,
-                                    Ok(None) => {
-                                        break;
-                                    },
-                                    Err(e) => {
-                                        state.log.log_err(loga::WARN, e.context("Error looking up user in FDAP"));
-                                        break;
-                                    },
-                                };
+                                let password =
+                                    match state.fdap.user_get::<&str, _>(&resp.user, ["password"], 10000).await {
+                                        Ok(Some(p)) => p,
+                                        Ok(None) => {
+                                            break;
+                                        },
+                                        Err(e) => {
+                                            state
+                                                .log
+                                                .log_err(loga::WARN, e.context("Error looking up user in FDAP"));
+                                            break;
+                                        },
+                                    };
                                 let serde_json::Value::String(password) = password else {
                                     state
                                         .log
@@ -494,7 +498,7 @@ async fn main1() -> Result<(), loga::Error> {
                         match async {
                             ta_return!(Response < Body >, loga::Error);
                             let subpath = args.subpath.strip_prefix("/").unwrap_or(&args.subpath);
-                            let path = std::path::absolute(static_dir.join(subpath)).unwrap();
+                            let path = static_dir.join(subpath).absolutize().unwrap().to_path_buf();
                             if !path.starts_with(&static_dir) {
                                 return Ok(response_404());
                             }

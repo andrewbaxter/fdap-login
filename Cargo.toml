@@ -25,6 +25,7 @@ mime_guess = "2"
 moka = { version = "0.12", features = ["future"] }
 openidconnect = "3"
 password-hash = "0.5"
+path-absolutize = "3.1.1"
 pkcs8 = { version = "0", features = ["pem"] }
 platform-info = "2"
 rand = "0.8"
