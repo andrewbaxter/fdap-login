@@ -186,7 +186,7 @@ async fn main1() -> Result<(), loga::Error> {
         ).unwrap(),
         static_dir: config.static_dir,
     });
-    tm.stream(
+    tm.critical_stream(
         format!("Http server - {}", config.bind_addr),
         TcpListenerStream::new(
             TcpListener::bind(&config.bind_addr).await.stack_context(&log, "Error binding to address")?,
@@ -196,7 +196,7 @@ async fn main1() -> Result<(), loga::Error> {
             let state = state.clone();
             let routes = Arc::new(htserve::handler::PathRouter::new([
                 //. .
-                (".well-known/openid-configuration".to_string(), {
+                ("/.well-known/openid-configuration".to_string(), {
                     Box::new(handler!((state: Arc < State >)(args -> Body) {
                         let base_url = get_original_base_url(&args.head.headers);
                         let base_url = base_url.as_ref().unwrap_or(&state.default_base_url);
@@ -217,7 +217,7 @@ async fn main1() -> Result<(), loga::Error> {
                         return response_200_json(&well_known);
                     })) as Box<dyn Handler<Body>>
                 }),
-                (PATH_AUTHORIZE.to_string(), {
+                (format!("/{}", PATH_AUTHORIZE), {
                     Box::new(handler!((state: Arc < State >)(args -> Body) {
                         if !state.authorize_ratelimit.check_key(&args.peer_addr.ip()).is_ok() {
                             return response_429();
@@ -424,7 +424,7 @@ async fn main1() -> Result<(), loga::Error> {
                             .unwrap();
                     }))
                 }),
-                (PATH_TOKEN.to_string(), {
+                (format!("/{}", PATH_TOKEN), {
                     Box::new(handler!((state: Arc < State >)(args -> Body) {
                         fn resp_err() -> Response<Body> {
                             return Response::builder()
@@ -524,7 +524,7 @@ async fn main1() -> Result<(), loga::Error> {
                         Ok(s) => s,
                         Err(e) => {
                             log.log_err(loga::DEBUG, e.context("Error opening peer stream"));
-                            return;
+                            return Ok(());
                         },
                     };
                     tokio::task::spawn({
@@ -538,6 +538,7 @@ async fn main1() -> Result<(), loga::Error> {
                             }
                         }
                     });
+                    return Ok(());
                 }
             }
         },
