@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "User",
+  "type": "object",
+  "required": [
+    "password"
+  ],
+  "properties": {
+    "password": {
+      "description": "Password hash in PHC format: https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

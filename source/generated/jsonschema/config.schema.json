@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Config",
+  "type": "object",
+  "required": [
+    "bind_addr",
+    "fdap_base_url",
+    "fdap_token"
+  ],
+  "properties": {
+    "bind_addr": {
+      "description": "Socket address to bind to",
+      "type": "string"
+    },
+    "fdap_base_url": {
+      "description": "Base URL of FDAP server",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Url"
+        }
+      ]
+    },
+    "fdap_token": {
+      "description": "Token for accessing FDAP server",
+      "type": "string"
+    },
+    "static_dir": {
+      "description": "Path to dir containing additional assets for login screen: `style.css`, `script.js`",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "definitions": {
+    "Url": {
+      "type": "string"
+    }
+  }
+}
