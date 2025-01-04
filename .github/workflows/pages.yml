@@ -15,8 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-        export PAGES_DIR=$(pwd)/stage/web/static
-        cargo run --bin generate_jsonschema -- $PAGES_DIR/jsonschema
+          export PAGES_DIR=$(pwd)/stage/web/static
+          cargo run --bin generate_jsonschema -- $PAGES_DIR/jsonschema
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
