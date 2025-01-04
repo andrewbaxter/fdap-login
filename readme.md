@@ -52,7 +52,7 @@ The login form is unstyled - you should prepre a directory with CSS (`style.css`
 
    ```jsonc
    {
-     "oidc": {
+     "fdap-oidc": {
        // Replace the value with the user's hashed password in PHC format:
        // https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md
        "password": "PHC_PASSWORD_HASH",

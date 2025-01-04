@@ -17,7 +17,7 @@ http = "1"
 http-body = "1"
 http-body-util = "0.1"
 http-serde = "2"
-htwrap = "0.6"
+htwrap = "0.11"
 hyper = { version = "1", features = ["server", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio", "server-auto"] }
 loga = "0.5"
@@ -27,7 +27,6 @@ openidconnect = "3"
 password-hash = "0.5"
 path-absolutize = "3"
 pkcs8 = { version = "0", features = ["pem"] }
-platform-info = "2"
 rand = "0.8"
 scrypt = "0.11"
 serde = "1"
@@ -36,3 +35,4 @@ serde_urlencoded = "0.7"
 taskmanager = "0.6"
 tokio = { version = "1", features = ["macros"] }
 tokio-stream = { version = "0.1", features = ["net"] }
+schemars = "0.8"
