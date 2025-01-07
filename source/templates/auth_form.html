@@ -4,13 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Login</title>
-    <link rel="stylesheet" href="style.css" />
-    <script type="text/javascript" src="script.js"></script>
+    <link rel="stylesheet" href="static/style.css" />
+    <script type="text/javascript" src="static/script.js"></script>
   </head>
   <body>
     <form method="post" action="?{{oidc_params}}">
-      <label>User <input type="text" name="user" /></label>
-      <label>Password <input type="password" name="password" /></label>
+      {% if error %}<div class="error">Error logging in.</div>{% endif %}
+      <label><span>User</span> <input type="text" name="user" placeholder="User" autofocus /></label>
+      <label><span>Password</span> <input type="password" name="password" placeholder="Password" /></label>
       <input type="submit" value="Login"></input>
     </form>
   </body>
