@@ -1,4 +1,6 @@
-This is a very minimal OIDC provider for use with FDAP.
+![Screenshot](./screenshot.avif)
+
+This is a very minimal OIDC provider for use with [FDAP](https://github.com/andrewbaxter/openfdap).
 
 It retrieves user data from FDAP to validate the login, and sends a response containing only an `id_token` and only the FDAP user id as the `sub` in the `id_token`. This should be sufficient for other applications working with FDAP to retrieve information from the FDAP server independently.
 
@@ -25,6 +27,8 @@ The login form is unstyled - you should prepre a directory with CSS (`style.css`
      "static_dir": "/srv/oidc",
    }
    ```
+
+   This includes no styling, so you need to provide styling via `"static_dir"`: `style.css`. The screenshot uses the [reference style](https://github.com/andrewbaxter/fdap-oidc-style).
 
 2. Add the following user to your OpenFDAP config
 
