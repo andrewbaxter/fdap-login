@@ -59,6 +59,8 @@ The login form is unstyled - you should prepre a directory with CSS (`style.css`
      "fdap-oidc": {
        // Replace the value with the user's hashed password in PHC format:
        // https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md
+       //
+       // You can generate this with `fdap-login hash-password`
        "password": "PHC_PASSWORD_HASH",
      },
    }

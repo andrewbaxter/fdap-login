@@ -49,5 +49,8 @@ pub struct Config {
     pub fdap_token: String,
     /// Path to dir containing additional assets for login screen: `style.css`,
     /// `script.js`
+    #[serde(default)]
     pub static_dir: Option<PathBuf>,
+    #[serde(default)]
+    pub debug: bool,
 }

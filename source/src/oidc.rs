@@ -1,21 +1,18 @@
 use {
     super::static_,
     crate::{
-        fdaploginlib::state::{
+        interface,
+        state::{
             AuthorizationCodeData,
             Session,
             State,
         },
-        get_base_url,
     },
     askama::DynTemplate,
     chrono::Utc,
     cookie::{
         Cookie,
         CookieBuilder,
-    },
-    fdap_oidc::interface::{
-        self,
     },
     flowcontrol::{
         shed,
@@ -36,6 +33,7 @@ use {
         handler,
         htserve::{
             self,
+            forwarded::get_original_base_url,
             handler::{
                 Handler,
                 HandlerArgs,
@@ -97,6 +95,11 @@ const PATH_AUTHORIZE: &str = "oidc/authorize";
 const PATH_JWKS: &str = "oidc/jwks";
 const PATH_TOKEN: &str = "oidc/token";
 
+fn get_base_url(args: &HandlerArgs) -> Result<Uri, loga::Error> {
+    let forwarded = htserve::forwarded::parse_all_forwarded(&args.head.headers).unwrap_or_default();
+    return Ok(get_original_base_url(&args.url, &forwarded)?);
+}
+
 pub async fn handle_authorize<
     'a,
 >(state: &'a Arc<State>, args: HandlerArgs<'a>) -> Result<Response<Body>, loga::Error> {
@@ -135,7 +138,7 @@ pub async fn handle_authorize<
         session_id: Option<&str>,
         authorization_code: &str,
     ) -> Response<Body> {
-        let mut resp = http::Response::builder().status(http::StatusCode::TEMPORARY_REDIRECT);
+        let mut resp = http::Response::builder().status(http::StatusCode::SEE_OTHER);
         if let Some(session_id) = session_id {
             resp =
                 resp.header(
@@ -282,8 +285,11 @@ pub fn endpoints(state: &Arc<State>) -> BTreeMap<String, Box<dyn Handler<Body>>>
         ("/oidc/static".to_string(), static_::endpoint(state)),
         ("/.well-known/openid-configuration".to_string(), {
             Box::new(handler!(()(args -> Body) {
-                let Ok(base_url) = get_base_url(&args) else {
-                    return response_400("Invalid URL");
+                let base_url = match get_base_url(&args) {
+                    Ok(u) => u,
+                    Err(e) => {
+                        return response_400(e.to_string());
+                    },
                 };
                 let well_known =
                     CoreProviderMetadata::new(
