@@ -24,7 +24,7 @@ The login form is unstyled - you should prepre a directory with CSS (`style.css`
      "fdap_token": "MYTOKEN",
      // Path to dir containing additional assets for login screen: `style.css`,
      // `script.js` (optional)
-     "static_dir": "/srv/oidc",
+     "static_dir": "/srv/oidc"
    }
    ```
 
@@ -39,16 +39,12 @@ The login form is unstyled - you should prepre a directory with CSS (`style.css`
          {
            "action": {
              "read": true,
-             "write": false,
+             "write": false
            },
-           "path": [
-             { "string": "user" },
-             "wildcard",
-             { "string": "fdap-oidc" },
-           ],
-         },
-       ],
-     },
+           "path": [{ "string": "user" }, "wildcard", { "string": "fdap-oidc" }]
+         }
+       ]
+     }
    }
    ```
 
@@ -61,9 +57,15 @@ The login form is unstyled - you should prepre a directory with CSS (`style.css`
        // https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md
        //
        // You can generate this with `fdap-login hash-password`
-       "password": "PHC_PASSWORD_HASH",
-     },
+       "password": "PHC_PASSWORD_HASH"
+     }
    }
    ```
 
 4. Run `fdap-oidc /path/to/config.json`
+
+# Design
+
+- Why doesn't the login screen have any branding?
+
+  Users shouldn't rely on branding to know what they're logging into.

@@ -1,23 +1,23 @@
 use {
-    super::static_,
     crate::{
-        interface,
         state::{
             AuthorizationCodeData,
             Session,
             State,
         },
+        userside::{
+            check_login,
+            show_login,
+            CheckLoginRes,
+        },
+        util::get_base_url,
     },
-    askama::DynTemplate,
     chrono::Utc,
     cookie::{
         Cookie,
         CookieBuilder,
     },
-    flowcontrol::{
-        shed,
-        ta_return,
-    },
+    flowcontrol::shed,
     http::{
         header::{
             CONTENT_TYPE,
@@ -33,7 +33,6 @@ use {
         handler,
         htserve::{
             self,
-            forwarded::get_original_base_url,
             handler::{
                 Handler,
                 HandlerArgs,
@@ -43,17 +42,13 @@ use {
                 body_full,
                 response_200_json,
                 response_400,
-                response_429,
                 response_503,
                 Body,
             },
         },
         url::UriJoin,
     },
-    loga::{
-        ea,
-        ResultContext,
-    },
+    loga::ResultContext,
     openidconnect::{
         core::{
             CoreIdToken,
@@ -77,7 +72,6 @@ use {
         SubjectIdentifier,
         TokenUrl,
     },
-    password_hash::PasswordHash,
     rand::distributions::DistString,
     serde::{
         Deserialize,
@@ -95,19 +89,11 @@ const PATH_AUTHORIZE: &str = "oidc/authorize";
 const PATH_JWKS: &str = "oidc/jwks";
 const PATH_TOKEN: &str = "oidc/token";
 
-fn get_base_url(args: &HandlerArgs) -> Result<Uri, loga::Error> {
-    let forwarded = htserve::forwarded::parse_all_forwarded(&args.head.headers).unwrap_or_default();
-    return Ok(get_original_base_url(&args.url, &forwarded)?);
-}
-
 pub async fn handle_authorize<
     'a,
 >(state: &'a Arc<State>, args: HandlerArgs<'a>) -> Result<Response<Body>, loga::Error> {
     let forwarded = htserve::forwarded::parse_all_forwarded(&args.head.headers).unwrap_or_default();
     let peer_ip = forwarded.iter().flat_map(|x| x.for_.iter()).map(|x| x.0).next().unwrap_or(args.peer_addr.ip());
-    if !state.authorize_ratelimit.check_key(&peer_ip).is_ok() {
-        return Ok(response_429());
-    };
     const COOKIE_SESSION: &str = "fdap_oidc_session";
     let mut error = false;
 
@@ -199,93 +185,52 @@ pub async fn handle_authorize<
     }
 
     // Handle login form response
-    if args.head.method == Method::POST {
-        match async {
-            ta_return!(Response < Body >, Option < loga:: Error >);
-
-            #[derive(Deserialize)]
-            struct FormResp {
-                user: String,
-                password: String,
-            }
-
-            let Ok(body) = args.body.collect().await else {
-                return Err(None);
-            };
-            let body = body.to_bytes();
-            let resp =
-                serde_urlencoded::from_bytes::<FormResp>(&body)
-                    .context_with("Failed to parse login form response", ea!(body = String::from_utf8_lossy(&body)))
-                    .map_err(Some)?;
-            let user =
-                state
-                    .fdap
-                    .user_get::<&str, _>(&resp.user, ["fdap-login"], 10000)
-                    .await
-                    .context_with("Error looking up user in FDAP", ea!(user = resp.user))
-                    .map_err(Some)?
-                    .context_with("No user found in FDAP", ea!(user = resp.user))
-                    .map_err(Some)?;
-            let user =
-                serde_json::from_value::<interface::fdap::User>(user)
-                    .context_with("Password returned from FDAP is not a string", ea!(user = resp.user))
-                    .map_err(Some)?;
-            let password =
-                PasswordHash::new(&user.password)
-                    .context_with("Password for user in FDAP is not in valid PWC format", ea!(user = resp.user))
-                    .map_err(Some)?;
-            if password.verify_password(&[&argon2::Argon2::default(), &scrypt::Scrypt], &resp.password).is_err() {
-                return Err(None);
-            }
-            let session_id = rand::distributions::Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
-            let authorization_code = rand::distributions::Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
-            let out = resp_auth_redirect(&oidc_params, Some(&session_id), &authorization_code);
-            let session = Arc::new(Session { user_id: resp.user });
-            state.sessions.insert(session_id, session.clone()).await;
-            state.authorization_codes.insert(authorization_code, Arc::new(AuthorizationCodeData {
-                nonce: oidc_params.nonce,
-                client_id: oidc_params.client_id,
-                session: session,
-            })).await;
-            return Ok(out);
-        }.await {
-            Ok(r) => return Ok(r),
+    shed!{
+        if args.head.method != Method::POST {
+            break;
+        }
+        let Ok(body) = args.body.collect().await else {
+            break;
+        };
+        let body = body.to_bytes();
+        match check_login(state, body, peer_ip).await {
+            Ok(r) => match r {
+                CheckLoginRes::Resp(r) => {
+                    return Ok(r);
+                },
+                CheckLoginRes::Fail => {
+                    error = true;
+                },
+                CheckLoginRes::Pass(res) => {
+                    let session_id = rand::distributions::Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
+                    let authorization_code =
+                        rand::distributions::Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
+                    let out = resp_auth_redirect(&oidc_params, Some(&session_id), &authorization_code);
+                    let session = Arc::new(Session { user_id: res.user });
+                    state.sessions.insert(session_id, session.clone()).await;
+                    state.authorization_codes.insert(authorization_code, Arc::new(AuthorizationCodeData {
+                        nonce: oidc_params.nonce,
+                        client_id: oidc_params.client_id,
+                        session: session,
+                    })).await;
+                    return Ok(out);
+                },
+            },
             Err(e) => {
-                if let Some(e) = e {
-                    state.log.log_err(loga::DEBUG, e.context("Unexpected error validating user"));
-                }
+                state.log.log_err(loga::DEBUG, e.context("Unexpected error validating user"));
                 error = true;
             },
         }
     }
-
-    // New login or login failed, show login form
-    #[derive(askama::Template)]
-    #[template(path = "auth_form.html")]
-    struct AuthFormParams<'a> {
-        error: bool,
-        oidc_params: &'a str,
-    }
-
-    return Ok(
-        http::Response::builder()
-            .status(http::StatusCode::OK)
-            .header(CONTENT_TYPE, "text/html")
-            .body(body_full(AuthFormParams {
-                error: error,
-                oidc_params: &args.query,
-            }.dyn_render().unwrap().into_bytes()))
-            .unwrap(),
-    );
+    return Ok(show_login(get_base_url(&args.url, &args.head)?, args.query, error));
 }
 
 pub fn endpoints(state: &Arc<State>) -> BTreeMap<String, Box<dyn Handler<Body>>> {
     return [
         //. .
-        ("/oidc/static".to_string(), static_::endpoint(state)),
         ("/.well-known/openid-configuration".to_string(), {
             Box::new(handler!(()(args -> Body) {
-                let base_url = match get_base_url(&args) {
+                let base_url = match get_base_url(&args.url, &args.head) {
                     Ok(u) => u,
                     Err(e) => {
                         return response_400(e.to_string());
@@ -334,7 +279,7 @@ pub fn endpoints(state: &Arc<State>) -> BTreeMap<String, Box<dyn Handler<Body>>>
                         .unwrap();
                 }
 
-                let Ok(base_url) = get_base_url(&args) else {
+                let Ok(base_url) = get_base_url(&args.url, &args.head) else {
                     return resp_err();
                 };
                 let Ok(body) = args.body.collect().await else {

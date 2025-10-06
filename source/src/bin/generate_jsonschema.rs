@@ -1,5 +1,5 @@
 use {
-    fdap_oidc::interface,
+    fdap_login::interface,
     schemars::schema_for,
     std::{
         env,

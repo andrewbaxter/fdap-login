@@ -803,7 +803,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7226a13a85e399971e0e65ed4e900860933df7c5117fbe3289e16c261d2c0ba7"
 dependencies = [
  "http 1.3.1",
- "htwrap",
+ "htwrap 0.11.7",
  "loga",
  "serde_json",
  "uri",
@@ -811,7 +811,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "fdap-oidc"
+name = "fdap-login"
 version = "0.1.0"
 dependencies = [
  "aargvark",
@@ -827,7 +827,7 @@ dependencies = [
  "http-body 1.0.1",
  "http-body-util",
  "http-serde",
- "htwrap",
+ "htwrap 0.14.0",
  "hyper 1.6.0",
  "hyper-util",
  "loga",
@@ -1320,6 +1320,37 @@ name = "htwrap"
 version = "0.11.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9dcaf746871438c0fd0b30b23edc4f27b011263d02335b9cbcd29b21dd493d34"
+dependencies = [
+ "async-stream",
+ "async-trait",
+ "flowcontrol",
+ "format-bytes",
+ "futures",
+ "hickory-resolver",
+ "http 1.3.1",
+ "http-body 1.0.1",
+ "http-body-util",
+ "hyper 1.6.0",
+ "hyper-rustls 0.26.0",
+ "hyper-util",
+ "loga",
+ "rand",
+ "rustls 0.22.4",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tokio-rustls 0.25.0",
+ "tokio-stream",
+ "tokio-util",
+ "tower-service",
+]
+
+[[package]]
+name = "htwrap"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ab2b7fa59abf15af1ce90fad8ce9a7601aa3d39850e374ff335d16e5721d475"
 dependencies = [
  "async-stream",
  "async-trait",

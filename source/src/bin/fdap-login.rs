@@ -9,10 +9,11 @@ use {
         PasswordHasher,
     },
     ed25519_dalek::pkcs8::EncodePrivateKey,
-    fdap_oidc::{
+    fdap_login::{
         interface::config::Config,
         oidc,
         state::State,
+        static_,
     },
     governor::Quota,
     http::Uri,
@@ -104,6 +105,7 @@ async fn main1() -> Result<(), loga::Error> {
                     None,
                 ).unwrap(),
                 static_dir: config.static_dir,
+                static_etags: Cache::builder().build(),
             });
             tm.critical_stream(
                 format!("Http server - {}", config.bind_addr),
@@ -114,6 +116,7 @@ async fn main1() -> Result<(), loga::Error> {
                     let log = log.clone();
                     let state = state.clone();
                     let mut routes = BTreeMap::new();
+                    routes.insert("/static".to_string(), static_::endpoint(&state));
                     for (k, v) in oidc::endpoints(&state) {
                         routes.insert(k, v);
                     }

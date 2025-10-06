@@ -31,4 +31,5 @@ pub struct State {
     pub authorize_ratelimit: governor::DefaultKeyedRateLimiter<IpAddr>,
     /// Not meaningfully used due to TLS but required by OIDC spec so...
     pub jwt_key: CoreEdDsaPrivateSigningKey,
+    pub static_etags: Cache<PathBuf, Option<String>>,
 }
